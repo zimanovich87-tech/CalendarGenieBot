@@ -4,7 +4,6 @@ import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiohttp import web
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +25,8 @@ def get_main_menu():
             [KeyboardButton(text="📅 Мои события"), KeyboardButton(text="🎯 Создать слот")],
             [KeyboardButton(text="⚙️ Настройки"), KeyboardButton(text="❓ Помощь")]
         ],
-        resize_keyboard=True
+        resize_keyboard=True,
+        input_field_placeholder="Выберите действие..."
     )
 
 @dp.message(Command("start"))
@@ -34,6 +34,13 @@ async def cmd_start(message: types.Message):
     await message.answer(
         "🧞‍♂️ Добро пожаловать в Calendar Genie Bot!\n\n"
         "Выберите действие в меню ниже:",
+        reply_markup=get_main_menu()
+    )
+
+@dp.message(Command("menu"))
+async def cmd_menu(message: types.Message):
+    await message.answer(
+        "📋 Главное меню:",
         reply_markup=get_main_menu()
     )
 
@@ -51,39 +58,27 @@ async def show_settings(message: types.Message):
 
 @dp.message(lambda message: message.text == "❓ Помощь")
 async def show_help(message: types.Message):
+    help_text = """
+🤖 Помощь по Calendar Genie:
+
+📅 Мои события - просмотр ваших задач и встреч
+🎯 Создать слот - создать временные слоты для бронирования  
+⚙️ Настройки - настройки календаря и уведомлений
+
+Используйте /menu чтобы открыть меню кнопок
+"""
+    await message.answer(help_text)
+
+@dp.message()
+async def echo(message: types.Message):
     await message.answer(
-        "🤖 Помощь по боту:\n\n"
-        "📅 Мои события - просмотр ваших задач\n"
-        "🎯 Создать слот - создать временные слоты\n"
-        "⚙️ Настройки - настройки бота\n\n"
-        "Бот работает на Render.com 🚀"
+        "Используйте меню или команды:\n/start - начать\n/menu - показать меню\n/help - помощь",
+        reply_markup=get_main_menu()
     )
-
-# HTTP сервер для здоровья (для Render)
-async def health_check(request):
-    return web.Response(text="Calendar Genie Bot is running!")
-
-async def start_bot():
-    logger.info("🚀 Бот запускается на Render...")
-    await dp.start_polling(bot)
-
-async def start_http():
-    app = web.Application()
-    app.router.add_get('/', health_check)
-    app.router.add_get('/health', health_check)
-    
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
-    site = web.TCPSite(runner, '0.0.0.0', int(os.getenv('PORT', 10000)))
-    await site.start()
-    logger.info("🌐 HTTP сервер запущен")
 
 async def main():
-    await asyncio.gather(
-        start_bot(),
-        start_http()
-    )
+    logger.info("🚀 Бот с кнопочным меню запускается...")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
